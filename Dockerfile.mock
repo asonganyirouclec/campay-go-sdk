@@ -1,0 +1,9 @@
+FROM golang:1.21.1
+
+RUN	go install github.com/golang/mock/mockgen@v1.6.0 
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+
+RUN go mod download -x
