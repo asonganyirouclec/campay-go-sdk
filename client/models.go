@@ -1,4 +1,4 @@
-package models																																																																																																																																																																																																																																																		 
+package client
 
 type RequestBody struct {
 	Amount      string `json:"amount"`

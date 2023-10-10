@@ -1,4 +1,4 @@
-package campay
+package client
 
 import (
 	"bytes"
@@ -10,7 +10,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/Iknite-Space/campay-go-sdk/internal/models"
 	"github.com/rs/zerolog"
 )
 
@@ -19,7 +18,7 @@ var logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.
 //go:generate mockgen -source ./campay.go -destination mocks/campays.mock.go -package mocks
 
 type PaymentService interface {
-	InitiatePayments(ctx context.Context, req models.RequestBody) error
+	InitiatePayments(ctx context.Context, req RequestBody) (*ResponseBody, error)
 }
 
 type PymentServiceImpl struct {
@@ -31,14 +30,14 @@ type PymentServiceImpl struct {
 //nolint:exhaustivestruct
 var _ PaymentService = &PymentServiceImpl{}
 
-func NewPayment(user string, pwd string, baseURL string) (*PymentServiceImpl, error) {
+func NewPaymentClient(user string, pwd string, baseURL string) (*PymentServiceImpl, error) {
 	return &PymentServiceImpl{UserName: user, UserPwd: pwd, baseURL: baseURL}, nil
 }
 
-// inititates the payments to campay. don't forget the required @amount,@phone and @from.
+// inititates the payments to campay. don't forget the required @amount,@phone and @from fields.
 //
 //nolint:funlen
-func (p *PymentServiceImpl) InitiatePayments(ctx context.Context, req models.RequestBody) error {
+func (p *PymentServiceImpl) InitiatePayments(ctx context.Context, req RequestBody) (*ResponseBody, error) {
 	client := &http.Client{}
 
 	token, err := p.getAcessToken(client)
@@ -46,7 +45,7 @@ func (p *PymentServiceImpl) InitiatePayments(ctx context.Context, req models.Req
 		errMsg := "failed to get Access Token"
 		logger.Error().Str("correlationID", fmt.Sprint(ctx.Value("correlationID"))).Msgf("%s :-> %v", errMsg, err)
 
-		return fmt.Errorf("%s :-> %w", errMsg, err)
+		return nil, fmt.Errorf("%s :-> %w", errMsg, err)
 	}
 
 	initiateBody, err := json.Marshal(req)
@@ -54,7 +53,7 @@ func (p *PymentServiceImpl) InitiatePayments(ctx context.Context, req models.Req
 		errMsg := "failed to Marhsal initiate pyment Req"
 		logger.Error().Str("correlationID", fmt.Sprint(ctx.Value("correlationID"))).Msgf("%s :-> %v", errMsg, err)
 
-		return fmt.Errorf("%s :-> %w", errMsg, err)
+		return nil, fmt.Errorf("%s :-> %w", errMsg, err)
 	}
 	//nolint:noctx
 	pymntsReq, err := http.NewRequest(http.MethodPost, p.baseURL+"/collect/", bytes.NewReader(initiateBody))
@@ -62,7 +61,7 @@ func (p *PymentServiceImpl) InitiatePayments(ctx context.Context, req models.Req
 		errMsg := "initiate pymnt error"
 		logger.Error().Str("correlationID", fmt.Sprint(ctx.Value("correlationID"))).Msgf("%s :-> %v", errMsg, err)
 
-		return fmt.Errorf("%s :-> %w", errMsg, err)
+		return nil, fmt.Errorf("%s :-> %w", errMsg, err)
 	}
 
 	pymntsReq.Header.Add("Authorization", "Token "+token.AccessToken)
@@ -73,7 +72,7 @@ func (p *PymentServiceImpl) InitiatePayments(ctx context.Context, req models.Req
 		errMsg := "failed to initiate payments"
 		logger.Error().Str("correlationID", fmt.Sprint(ctx.Value("correlationID"))).Msgf("%s :->  %v", errMsg, err)
 
-		return fmt.Errorf("%s :-> %w", errMsg, err)
+		return nil, fmt.Errorf("%s :-> %w", errMsg, err)
 	}
 	defer pymntRes.Body.Close()
 
@@ -84,7 +83,7 @@ func (p *PymentServiceImpl) InitiatePayments(ctx context.Context, req models.Req
 		logger.Error().Str("correlationID", fmt.Sprint(ctx.Value("correlationID"))).Msgf("%s :->  %v", errMsg, err)
 
 		//nolint:goerr113
-		return fmt.Errorf(" %s :-> %v %s", errMsg, pymntRes.StatusCode, string(body))
+		return nil, fmt.Errorf(" %s :-> %v %s", errMsg, pymntRes.StatusCode, string(body))
 	}
 
 	pymntBody, err := io.ReadAll(pymntRes.Body)
@@ -92,17 +91,17 @@ func (p *PymentServiceImpl) InitiatePayments(ctx context.Context, req models.Req
 		errMsg := "failed to read pymnt body"
 		logger.Error().Str("correlationID", fmt.Sprint(ctx.Value("correlationID"))).Msgf("%s :->  %v", errMsg, err)
 
-		return fmt.Errorf("%s :-> %w", errMsg, err)
+		return nil, fmt.Errorf("%s :-> %w", errMsg, err)
 	}
 
-	var pymntResponse models.ResponseBody
+	var pymntResponse ResponseBody
 
 	if err := json.Unmarshal(pymntBody, &pymntResponse); err != nil {
 		errMsg := "error umarshaling pyment response body"
 		logger.Error().Str("correlationID", fmt.Sprint(ctx.Value("correlationID"))).Msgf("%s :->  %v", errMsg, err)
 
-		return fmt.Errorf("%s :-> %w", errMsg, err)
+		return nil, fmt.Errorf("%s :-> %w", errMsg, err)
 	}
 
-	return err
+	return &pymntResponse, nil
 }

@@ -1,4 +1,4 @@
-package campay
+package client
 
 import (
 	"bytes"
@@ -8,13 +8,13 @@ import (
 	"net/http"
 )
 
-type AcessRights struct {
+type AccessRights struct {
 	AccessToken string `json:"token"`
 	ExpiresIn   int64  `json:"expires_in"`
 }
 
 // get access token from campay. make sure to have a app registersw in prod on campay dashboard.
-func (p *PymentServiceImpl) getAcessToken(client *http.Client) (*AcessRights, error) {
+func (p *PymentServiceImpl) getAcessToken(client *http.Client) (*AccessRights, error) {
 	userCredentials := map[string]string{
 		"username": p.UserName,
 		"password": p.UserPwd,
@@ -64,7 +64,7 @@ func (p *PymentServiceImpl) getAcessToken(client *http.Client) (*AcessRights, er
 		return nil, fmt.Errorf("%s :-> %w", errMsg, err)
 	}
 
-	var credentials AcessRights
+	var credentials AccessRights
 
 	if err := json.Unmarshal(body, &credentials); err != nil {
 		errMsg := "error unmarshaling access token body"
