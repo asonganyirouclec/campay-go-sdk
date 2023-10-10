@@ -1,4 +1,4 @@
-package payments
+package campay
 
 import (
 	"bytes"
@@ -13,6 +13,7 @@ type AcessRights struct {
 	ExpiresIn   int64  `json:"expires_in"`
 }
 
+// get access token from campay. make sure to have a app registersw in prod on campay dashboard.
 func (p *PymentServiceImpl) getAcessToken(client *http.Client) (*AcessRights, error) {
 	userCredentials := map[string]string{
 		"username": p.UserName,

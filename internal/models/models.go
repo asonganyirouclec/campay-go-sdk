@@ -1,4 +1,4 @@
-package payment
+package models																																																																																																																																																																																																																																																		 
 
 type RequestBody struct {
 	Amount      string `json:"amount"`

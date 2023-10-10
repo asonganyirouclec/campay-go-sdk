@@ -1,4 +1,4 @@
-package payments
+package campay
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/Iknite-Space/campay-go-sdk/internal/models/payment"
+	"github.com/Iknite-Space/campay-go-sdk/internal/models"
 	"github.com/rs/zerolog"
 )
 
@@ -19,7 +19,7 @@ var logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.
 //go:generate mockgen -source ./payment.go -destination mocks/payments.mock.go -package mocks
 
 type PaymentService interface {
-	InitiatePayments(ctx context.Context, req payment.RequestBody) error
+	InitiatePayments(ctx context.Context, req models.RequestBody) error
 }
 
 type PymentServiceImpl struct {
@@ -31,12 +31,14 @@ type PymentServiceImpl struct {
 //nolint:exhaustivestruct
 var _ PaymentService = &PymentServiceImpl{}
 
-func NewPymentService(user string, pwd string, baseURL string) (*PymentServiceImpl, error) {
+func NewPayment(user string, pwd string, baseURL string) (*PymentServiceImpl, error) {
 	return &PymentServiceImpl{UserName: user, UserPwd: pwd, baseURL: baseURL}, nil
 }
 
+// inititates the payments to campay. don't forget the required @amount,@phone and @from.
+//
 //nolint:funlen
-func (p *PymentServiceImpl) InitiatePayments(ctx context.Context, req payment.RequestBody) error {
+func (p *PymentServiceImpl) InitiatePayments(ctx context.Context, req models.RequestBody) error {
 	client := &http.Client{}
 
 	token, err := p.getAcessToken(client)
@@ -93,7 +95,7 @@ func (p *PymentServiceImpl) InitiatePayments(ctx context.Context, req payment.Re
 		return fmt.Errorf("%s :-> %w", errMsg, err)
 	}
 
-	var pymntResponse payment.ResponseBody
+	var pymntResponse models.ResponseBody
 
 	if err := json.Unmarshal(pymntBody, &pymntResponse); err != nil {
 		errMsg := "error umarshaling pyment response body"
