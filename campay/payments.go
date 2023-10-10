@@ -15,7 +15,7 @@ import (
 
 var logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
 
-//go:generate mockgen -source ./campay.go -destination mocks/campays.mock.go -package mocks
+//go:generate mockgen -source ./payments.go -destination mocks/payments.mock.go -package mocks
 
 type PaymentService interface {
 	InitiatePayments(ctx context.Context, req RequestBody) (*ResponseBody, error)
