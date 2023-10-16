@@ -35,17 +35,17 @@ func (m *MockPaymentService) EXPECT() *MockPaymentServiceMockRecorder {
 	return m.recorder
 }
 
-// InitiatePayments mocks base method.
-func (m *MockPaymentService) InitiatePayments(ctx context.Context, req campay.RequestBody) (*campay.ResponseBody, error) {
+// InitiateCampayMobileMoneyPayments mocks base method.
+func (m *MockPaymentService) InitiateCampayMobileMoneyPayments(ctx context.Context, req campay.RequestBody) (*campay.ResponseBody, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "InitiatePayments", ctx, req)
+	ret := m.ctrl.Call(m, "InitiateCampayMobileMoneyPayments", ctx, req)
 	ret0, _ := ret[0].(*campay.ResponseBody)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// InitiatePayments indicates an expected call of InitiatePayments.
-func (mr *MockPaymentServiceMockRecorder) InitiatePayments(ctx, req interface{}) *gomock.Call {
+// InitiateCampayMobileMoneyPayments indicates an expected call of InitiateCampayMobileMoneyPayments.
+func (mr *MockPaymentServiceMockRecorder) InitiateCampayMobileMoneyPayments(ctx, req interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InitiatePayments", reflect.TypeOf((*MockPaymentService)(nil).InitiatePayments), ctx, req)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InitiateCampayMobileMoneyPayments", reflect.TypeOf((*MockPaymentService)(nil).InitiateCampayMobileMoneyPayments), ctx, req)
 }
