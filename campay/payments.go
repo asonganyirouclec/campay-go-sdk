@@ -18,7 +18,7 @@ var logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.
 //go:generate mockgen -source ./payments.go -destination pymntsmocks/payments.mock.go -package pymntsmocks
 
 type PaymentService interface {
-	InitiatePayments(ctx context.Context, req RequestBody) (*ResponseBody, error)
+	InitiateCampayMobileMoneyPayments(ctx context.Context, req RequestBody) (*ResponseBody, error)
 }
 
 type PymentServiceImpl struct {
@@ -37,7 +37,7 @@ func NewPaymentClient(user string, pwd string, baseURL string) (*PymentServiceIm
 // inititates the payments to campay. don't forget the required @amount,@phone and @from fields.
 //
 //nolint:funlen
-func (p *PymentServiceImpl) InitiatePayments(ctx context.Context, req RequestBody) (*ResponseBody, error) {
+func (p *PymentServiceImpl) InitiateCampayMobileMoneyPayments(ctx context.Context, req RequestBody) (*ResponseBody, error) {
 	client := &http.Client{}
 
 	token, err := p.getAcessToken(client)
