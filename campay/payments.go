@@ -56,7 +56,7 @@ func (p *PymentServiceImpl) InitiateCampayMobileMoneyPayments(ctx context.Contex
 		return nil, fmt.Errorf("%s :-> %w", errMsg, err)
 	}
 	//nolint:noctx
-	pymntsReq, err := http.NewRequest(http.MethodPost, p.baseURL+"/collect/", bytes.NewReader(initiateBody))
+	pymntsReq, err := http.NewRequestWithContext(ctx, http.MethodPost, p.baseURL+"/collect/", bytes.NewReader(initiateBody))
 	if err != nil {
 		errMsg := "initiate pymnt error"
 		logger.Error().Str("correlationID", fmt.Sprint(ctx.Value("correlationID"))).Msgf("%s :-> %v", errMsg, err)
