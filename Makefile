@@ -23,7 +23,7 @@ gen:
 fix:
 	golangci-lint run --fix	
 
-lint:fix
+lint:
 	golangci-lint run ./...
 
 tidy:
