@@ -36,10 +36,10 @@ func (m *MockPaymentService) EXPECT() *MockPaymentServiceMockRecorder {
 }
 
 // InitiateCampayMobileMoneyPayments mocks base method.
-func (m *MockPaymentService) InitiateCampayMobileMoneyPayments(ctx context.Context, req campay.RequestBody) (*campay.ResponseBody, error) {
+func (m *MockPaymentService) InitiateCampayMobileMoneyPayments(ctx context.Context, req campay.CampayPaymentsRequest) (*campay.CampayPaymentsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "InitiateCampayMobileMoneyPayments", ctx, req)
-	ret0, _ := ret[0].(*campay.ResponseBody)
+	ret0, _ := ret[0].(*campay.CampayPaymentsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -48,4 +48,18 @@ func (m *MockPaymentService) InitiateCampayMobileMoneyPayments(ctx context.Conte
 func (mr *MockPaymentServiceMockRecorder) InitiateCampayMobileMoneyPayments(ctx, req interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InitiateCampayMobileMoneyPayments", reflect.TypeOf((*MockPaymentService)(nil).InitiateCampayMobileMoneyPayments), ctx, req)
+}
+
+// VerifyCampayWebHookSignature mocks base method.
+func (m *MockPaymentService) VerifyCampayWebHookSignature(ctx context.Context, signature, campayWebHookSecretKey string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "VerifyCampayWebHookSignature", ctx, signature, campayWebHookSecretKey)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// VerifyCampayWebHookSignature indicates an expected call of VerifyCampayWebHookSignature.
+func (mr *MockPaymentServiceMockRecorder) VerifyCampayWebHookSignature(ctx, signature, campayWebHookSecretKey interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyCampayWebHookSignature", reflect.TypeOf((*MockPaymentService)(nil).VerifyCampayWebHookSignature), ctx, signature, campayWebHookSecretKey)
 }

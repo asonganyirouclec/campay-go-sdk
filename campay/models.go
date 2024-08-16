@@ -1,24 +1,24 @@
 package campay
 
-type RequestBody struct {
-	Amount      string `json:"amount"`
-	From        string `json:"from"`
-	Description string `json:"description"`
-	ExternalRef string `json:"external_reference"`
+type CampayPaymentsRequest struct {
+	Amount      string `json:"amount"` // amount to initiate the payment
+	From        string `json:"from"` // phone number to send the payments example +237......
+	Description string `json:"description"` // description of the payment
+	ExternalRef string `json:"external_reference"` // idempotent key to identify the response from campay after payment was initiated.
 }
-type ResponseBody struct {
+type CampayPaymentsResponse struct {
 	Reference string `json:"reference"`
 	UssdCode  string `json:"ussd_code"`
 	Operator  string `json:"operator"`
 }
 
 type CampayWebHookQueryParams struct {
-	Status            string `json:"status"`
-	Reference         string `json:"reference"` // transaction ref
-	Amount            string `json:"amount"`
+	Status            string `json:"status"` // status of the payment request
+	Reference         string `json:"reference"` // transaction reference
+	Amount            string `json:"amount"` 
 	Currency          string `json:"currency"`
 	Code              string `json:"code"`
-	Operator          string `json:"operator"`
+	Operator          string `json:"operator"` // MTN or ORANGE
 	OperatorReference string `json:"operator_reference"`
-	ExternalRef       string `json:"external_reference"` // -> order_id
+	ExternalRef       string `json:"external_reference"` // idempotent key
 }

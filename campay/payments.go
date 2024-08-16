@@ -7,101 +7,148 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
-	"time"
-
-	"github.com/rs/zerolog"
+	"github.com/golang-jwt/jwt"
 )
 
-var logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).With().Timestamp().Logger()
 
 //go:generate mockgen -source ./payments.go -destination pymntsmocks/payments.mock.go -package pymntsmocks
 
 type PaymentService interface {
-	InitiateCampayMobileMoneyPayments(ctx context.Context, req RequestBody) (*ResponseBody, error)
+	InitiateCampayMobileMoneyPayments(ctx context.Context, req CampayPaymentsRequest) (*CampayPaymentsResponse, error)
+	VerifyCampayWebHookSignature(ctx context.Context, signature string, campayWebHookSecretKey string) error
 }
 
+// CampayAccessToken represents the response body from campay.
+type CampayAccessToken struct {
+	AccessToken string `json:"token"`
+	ExpiresIn   int64  `json:"expires_in"`
+}
+
+// PymentServiceImpl service implementation
 type PymentServiceImpl struct {
-	UserName string
-	baseURL  string
-	UserPwd  string
+	CampayAppUserName string
+	CampayBaseURL     string
+	CampayAppPassword string
 }
 
-//nolint:exhaustivestruct
 var _ PaymentService = &PymentServiceImpl{}
 
-func NewPaymentClient(user string, pwd string, baseURL string) (*PymentServiceImpl, error) {
-	return &PymentServiceImpl{UserName: user, UserPwd: pwd, baseURL: baseURL}, nil
+// NewPaymentClient initialize a new campay payment instance.
+// use https://ww.demo.campay.com/api  Base url for sandbox and https://www.campay.net/api for production (when app goes live).
+func NewPaymentClient(campayAppUserName string, campayAppPassword string, campayBaseURL string) (*PymentServiceImpl, error) {
+	return &PymentServiceImpl{
+		CampayAppUserName: campayAppUserName,
+		CampayBaseURL:     campayBaseURL,
+		CampayAppPassword: campayAppPassword,
+	}, nil
 }
 
-// inititates the payments to campay. don't forget the required @amount,@phone and @from fields.
-//
-//nolint:funlen
-func (p *PymentServiceImpl) InitiateCampayMobileMoneyPayments(ctx context.Context, req RequestBody) (*ResponseBody, error) {
+// inititates the payments to campay. don't forget the required @amount,@phone and @from fields args.
+func (p *PymentServiceImpl) InitiateCampayMobileMoneyPayments(ctx context.Context, req CampayPaymentsRequest) (*CampayPaymentsResponse, error) {
 	client := &http.Client{}
 
-	token, err := p.getAcessToken(client)
+	accessToken, err := p.GetCampayAccessToken(ctx, client)
 	if err != nil {
-		errMsg := "failed to get Access Token"
-		logger.Error().Str("correlationID", fmt.Sprint(ctx.Value("correlationID"))).Msgf("%s :-> %v", errMsg, err)
-
-		return nil, fmt.Errorf("%s :-> %w", errMsg, err)
+		return nil, err
 	}
 
-	initiateBody, err := json.Marshal(req)
+	paymentRequests, err := json.Marshal(req)
 	if err != nil {
-		errMsg := "failed to Marhsal initiate pyment Req"
-		logger.Error().Str("correlationID", fmt.Sprint(ctx.Value("correlationID"))).Msgf("%s :-> %v", errMsg, err)
-
-		return nil, fmt.Errorf("%s :-> %w", errMsg, err)
+		return nil, fmt.Errorf(`failed to parse the payment requests. why: %w `, err)
 	}
-	//nolint:noctx
-	pymntsReq, err := http.NewRequestWithContext(ctx, http.MethodPost, p.baseURL+"/collect/", bytes.NewReader(initiateBody))
+
+	paymentsRequestsWithContext, err := http.NewRequestWithContext(ctx, http.MethodPost, p.CampayBaseURL+"/collect/", bytes.NewReader(paymentRequests))
 	if err != nil {
-		errMsg := "initiate pymnt error"
-		logger.Error().Str("correlationID", fmt.Sprint(ctx.Value("correlationID"))).Msgf("%s :-> %v", errMsg, err)
-
-		return nil, fmt.Errorf("%s :-> %w", errMsg, err)
+		return nil, fmt.Errorf(`failed to configure requests to initiate payments to campay. why: %w`, err)
 	}
 
-	pymntsReq.Header.Add("Authorization", "Token "+token.AccessToken)
-	pymntsReq.Header.Add("Content-Type", "application/json")
+	paymentsRequestsWithContext.Header.Add("Authorization", "Token "+accessToken.AccessToken)
+	paymentsRequestsWithContext.Header.Add("Content-Type", "application/json")
 
-	pymntRes, err := client.Do(pymntsReq)
+	paymentResponse, err := client.Do(paymentsRequestsWithContext)
 	if err != nil {
-		errMsg := "failed to initiate payments"
-		logger.Error().Str("correlationID", fmt.Sprint(ctx.Value("correlationID"))).Msgf("%s :->  %v", errMsg, err)
-
-		return nil, fmt.Errorf("%s :-> %w", errMsg, err)
-	}
-	defer pymntRes.Body.Close()
-
-	if pymntRes.StatusCode == http.StatusBadRequest {
-		body, _ := io.ReadAll(pymntRes.Body)
-
-		errMsg := "bad status code for pymnt"
-		logger.Error().Str("correlationID", fmt.Sprint(ctx.Value("correlationID"))).Msgf("%s :->  %v", errMsg, err)
-
-		//nolint:goerr113
-		return nil, fmt.Errorf(" %s :-> %v %s", errMsg, pymntRes.StatusCode, string(body))
+		return nil, fmt.Errorf(`fail to initiate payment requests to campay. why: %w`, err)
 	}
 
-	pymntBody, err := io.ReadAll(pymntRes.Body)
+	defer paymentResponse.Body.Close()
+
+	if paymentResponse.StatusCode == http.StatusBadRequest {
+		body, _ := io.ReadAll(paymentResponse.Body)
+		return nil, fmt.Errorf(`failed response from campay: status_code=%d response_body=%s`, paymentResponse.StatusCode, string(body))
+	}
+
+	pymntBody, err := io.ReadAll(paymentResponse.Body)
 	if err != nil {
-		errMsg := "failed to read pymnt body"
-		logger.Error().Str("correlationID", fmt.Sprint(ctx.Value("correlationID"))).Msgf("%s :->  %v", errMsg, err)
-
-		return nil, fmt.Errorf("%s :-> %w", errMsg, err)
+		return nil, fmt.Errorf(`failed to read payment response body from campay. why: %s`, err)
 	}
 
-	var pymntResponse ResponseBody
+	var pymntResponse CampayPaymentsResponse
 
 	if err := json.Unmarshal(pymntBody, &pymntResponse); err != nil {
-		errMsg := "error umarshaling pyment response body"
-		logger.Error().Str("correlationID", fmt.Sprint(ctx.Value("correlationID"))).Msgf("%s :->  %v", errMsg, err)
-
-		return nil, fmt.Errorf("%s :-> %w", errMsg, err)
+		return nil, fmt.Errorf(`error umarshaling payment response body. why: %w`, err)
 	}
 
 	return &pymntResponse, nil
+}
+
+// GetCampayAccessToken retrieves the access token associated with app name and password.
+func (p *PymentServiceImpl) GetCampayAccessToken(ctx context.Context, client *http.Client) (*CampayAccessToken, error) {
+	campayAppCredentials := map[string]string{
+		"username": p.CampayAppUserName,
+		"password": p.CampayAppPassword,
+	}
+
+	tokenBody, err := json.Marshal(campayAppCredentials)
+	if err != nil {
+		return nil, fmt.Errorf(`failed to serialized token user credentials. why: %w`, err)
+	}
+
+	tokenRequestWithContext, err := http.NewRequestWithContext(ctx, http.MethodPost, p.CampayBaseURL+"/token/", bytes.NewReader(tokenBody))
+	if err != nil {
+		return nil, fmt.Errorf(`failed to configure request request to campay. why: %w`, err)
+	}
+
+	tokenRequestWithContext.Header.Add("Content-Type", "application/json")
+
+	response, err := client.Do(tokenRequestWithContext)
+	if err != nil {
+		return nil, fmt.Errorf(`failed to requests token from campay. why: %w`, err)
+	}
+
+	defer response.Body.Close()
+
+	if response.StatusCode == http.StatusBadRequest {
+		body, _ := io.ReadAll(response.Body)
+		return nil, fmt.Errorf("access token request failed: status_code=%v response_body=%s", response.StatusCode, string(body))
+	}
+
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, fmt.Errorf(`failed to read token response from campay. why: %w`, err)
+	}
+
+	var campayTokenResponse CampayAccessToken
+
+	if err := json.Unmarshal(body, &campayTokenResponse); err != nil {
+		return nil, fmt.Errorf(`error unmarshaling access token response body. why: %w`, err)
+	}
+
+	return &campayTokenResponse, nil
+}
+
+// VerifyCampayWebHookSignature authenticates the webhook signature to make sure the response was signed by campay.
+func (p *PymentServiceImpl) VerifyCampayWebHookSignature(ctx context.Context, signature string, campayWebHookSecretKey string) error {
+	token, err := jwt.Parse(signature, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			alg := token.Header["alg"]
+			return nil, fmt.Errorf("unexpected signing algorithm: alg=%v %s", alg, "UNEXPECTED_SIGNING_ALG")
+		}
+		return []byte(campayWebHookSecretKey), nil
+	})
+
+	if !token.Valid {
+		return err
+	}
+
+	return nil
 }
