@@ -31,3 +31,5 @@ tidy:
 
 test: tidy
 	gocov test ./... | gocov report 
+run:
+	go run main.go	
