@@ -118,7 +118,7 @@ func (p *PymentServiceImpl) GetCampayAccessToken(ctx context.Context, client *ht
 
 	defer response.Body.Close()
 
-	if response.StatusCode == http.StatusBadRequest {
+	if response.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(response.Body)
 		return nil, fmt.Errorf("access token request failed: status_code=%v response_body=%s", response.StatusCode, string(body))
 	}
@@ -183,7 +183,7 @@ func (p *PymentServiceImpl) Withdraw(ctx context.Context, req WithdrawalRequest)
 
 	defer paymentResponse.Body.Close()
 
-	if paymentResponse.StatusCode == http.StatusBadRequest {
+	if paymentResponse.StatusCode == http.StatusOK {
 		body, _ := io.ReadAll(paymentResponse.Body)
 		return nil, fmt.Errorf(`failed response from campay: status_code=%d response_body=%s`, paymentResponse.StatusCode, string(body))
 	}
