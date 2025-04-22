@@ -6,10 +6,21 @@ type CampayPaymentsRequest struct {
 	Description string `json:"description"` // description of the payment
 	ExternalRef string `json:"external_reference"` // idempotent key to identify the response from campay after payment was initiated.
 }
+
+type WithdrawalRequest struct {
+	Amount      string `json:"amount"` // amount to initiate the payment
+	To        string `json:"from"` // phone number to send the payments to example +237......
+	Description string `json:"description"` // description of the payment
+	ExternalRef string `json:"external_reference"` // idempotent key to identify the response from campay after payment was initiated.
+}
 type CampayPaymentsResponse struct {
 	Reference string `json:"reference"`
 	UssdCode  string `json:"ussd_code"`
 	Operator  string `json:"operator"`
+}
+
+type WithdrawalResponse struct {
+	Reference string `json:"reference"`
 }
 
 type CampayWebHookQueryParams struct {
