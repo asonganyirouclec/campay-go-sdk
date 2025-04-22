@@ -1,16 +1,16 @@
 package campay
 
 type CampayPaymentsRequest struct {
-	Amount      string `json:"amount"` // amount to initiate the payment
-	From        string `json:"from"` // phone number to send the payments example +237......
-	Description string `json:"description"` // description of the payment
+	Amount      string `json:"amount"`             // amount to initiate the payment
+	From        string `json:"from"`               // phone number to send the payments example +237......
+	Description string `json:"description"`        // description of the payment
 	ExternalRef string `json:"external_reference"` // idempotent key to identify the response from campay after payment was initiated.
 }
 
 type WithdrawalRequest struct {
-	Amount      string `json:"amount"` // amount to initiate the payment
-	To        string `json:"from"` // phone number to send the payments to example +237......
-	Description string `json:"description"` // description of the payment
+	Amount      string `json:"amount"`             // amount to initiate the payment
+	To          string `json:"to"`                 // phone number to send the payments to example +237......
+	Description string `json:"description"`        // description of the payment
 	ExternalRef string `json:"external_reference"` // idempotent key to identify the response from campay after payment was initiated.
 }
 type CampayPaymentsResponse struct {
@@ -24,9 +24,9 @@ type WithdrawalResponse struct {
 }
 
 type CampayWebHookQueryParams struct {
-	Status            string `json:"status"` // status of the payment request
+	Status            string `json:"status"`    // status of the payment request
 	Reference         string `json:"reference"` // transaction reference
-	Amount            string `json:"amount"` 
+	Amount            string `json:"amount"`
 	Currency          string `json:"currency"`
 	Code              string `json:"code"`
 	Operator          string `json:"operator"` // MTN or ORANGE
