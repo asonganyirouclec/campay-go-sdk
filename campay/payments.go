@@ -183,7 +183,7 @@ func (p *PymentServiceImpl) Withdraw(ctx context.Context, req WithdrawalRequest)
 
 	defer paymentResponse.Body.Close()
 
-	if paymentResponse.StatusCode == http.StatusOK {
+	if paymentResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(paymentResponse.Body)
 		return nil, fmt.Errorf(`failed response from campay: status_code=%d response_body=%s`, paymentResponse.StatusCode, string(body))
 	}
